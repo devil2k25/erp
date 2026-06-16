@@ -45,3 +45,29 @@ dev-frontend:
 
 dev-realtime:
 	cd realtime && npm run dev
+
+# ── Production (Oracle Cloud / any VPS) ──────────────────────────────────────
+prod-up:
+	docker compose -f docker-compose.prod.yml up -d
+
+prod-down:
+	docker compose -f docker-compose.prod.yml down
+
+prod-build:
+	docker compose -f docker-compose.prod.yml build --parallel
+
+prod-logs:
+	docker compose -f docker-compose.prod.yml logs -f
+
+prod-migrate:
+	docker compose -f docker-compose.prod.yml exec backend php artisan migrate --path=database/migrations/master --force
+	docker compose -f docker-compose.prod.yml exec backend php artisan migrate --force
+
+prod-seed:
+	docker compose -f docker-compose.prod.yml exec backend php artisan db:seed --class=DatabaseSeeder --force
+
+prod-shell:
+	docker compose -f docker-compose.prod.yml exec backend sh
+
+prod-restart:
+	docker compose -f docker-compose.prod.yml restart

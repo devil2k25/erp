@@ -1,0 +1,10 @@
+.env
+.git
+node_modules
+tests
+.phpunit.result.cache
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*
