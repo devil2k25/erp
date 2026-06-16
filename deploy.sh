@@ -1,5 +1,6 @@
 #!/bin/bash
-# ─── Factory ERP — Oracle Cloud / Ubuntu 22.04 ARM64 Deployment Script ────────
+# ─── Factory ERP — Oracle Cloud Ubuntu 22.04 Deployment Script ────────────────
+# Tested on: VM.Standard.E2.1.Micro (1 OCPU, 1 GB RAM) and A1.Flex (ARM64)
 # Run as: curl -fsSL <raw-url>/deploy.sh | bash
 # Or:     bash deploy.sh
 set -e
@@ -12,6 +13,19 @@ error() { echo -e "${RED}[ERR]${NC}   $1"; exit 1; }
 REPO_URL="https://github.com/devil2k25/erp.git"
 BRANCH="claude/factory-management-saas-jnm96p"
 INSTALL_DIR="$HOME/erp"
+
+# ── 0. Swap file (CRITICAL on 1 GB RAM — prevents OOM during builds) ─────────
+if [ ! -f /swapfile ]; then
+    info "Creating 2 GB swap file (required on 1 GB RAM instances)..."
+    sudo fallocate -l 2G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+    info "Swap active: $(free -h | grep Swap)"
+else
+    info "Swap already configured."
+fi
 
 # ── 1. System packages ────────────────────────────────────────────────────────
 info "Updating system packages..."

@@ -1,5 +1,9 @@
 version: '3.9'
 
+# Optimized for 1 GB RAM (Oracle Cloud VM.Standard.E2.1.Micro)
+# queue-worker and scheduler are bundled inside 'backend' via Supervisor
+# Total resident memory target: ~620 MB
+
 services:
   mysql-master:
     image: mysql:8.0
@@ -13,23 +17,22 @@ services:
     volumes:
       - mysql_master_data:/var/lib/mysql
       - ./docker/mysql/master.cnf:/etc/mysql/conf.d/master.cnf
-    # Port NOT exposed — accessible only within Docker network
     networks:
       - erp_net
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 15
 
   redis:
     image: redis:7-alpine
     container_name: erp_redis
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 512mb --maxmemory-policy allkeys-lru
+    # 256 MB cap — leaves headroom for PHP and Node processes
+    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
-    # Port NOT exposed — accessible only within Docker network
     networks:
       - erp_net
 
@@ -40,6 +43,7 @@ services:
     image: erp_backend:latest
     container_name: erp_backend
     restart: unless-stopped
+    # Supervisor inside runs: php-fpm + queue-worker + scheduler
     volumes:
       - ./backend/storage:/var/www/backend/storage
     environment:
@@ -50,7 +54,7 @@ services:
       MASTER_DB_HOST: mysql-master
       MASTER_DB_PORT: 3306
       MASTER_DB_DATABASE: erp_master
-      # Use root for master connection — required for CREATE DATABASE when provisioning tenants
+      # Root credentials required so TenantService can CREATE DATABASE per org
       MASTER_DB_USERNAME: root
       MASTER_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       REDIS_HOST: redis
@@ -64,60 +68,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    networks:
-      - erp_net
-
-  queue-worker:
-    image: erp_backend:latest
-    container_name: erp_queue_worker
-    restart: unless-stopped
-    command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600 --no-interaction
-    volumes:
-      - ./backend/storage:/var/www/backend/storage
-    environment:
-      APP_ENV: production
-      APP_DEBUG: "false"
-      APP_KEY: ${APP_KEY}
-      APP_URL: ${APP_URL}
-      MASTER_DB_HOST: mysql-master
-      MASTER_DB_PORT: 3306
-      MASTER_DB_DATABASE: erp_master
-      MASTER_DB_USERNAME: root
-      MASTER_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      REDIS_HOST: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      QUEUE_CONNECTION: redis
-      BROADCAST_CONNECTION: redis
-      CACHE_STORE: redis
-    depends_on:
-      - backend
-    networks:
-      - erp_net
-
-  scheduler:
-    image: erp_backend:latest
-    container_name: erp_scheduler
-    restart: unless-stopped
-    command: bash -c "while true; do php artisan schedule:run --no-interaction; sleep 60; done"
-    volumes:
-      - ./backend/storage:/var/www/backend/storage
-    environment:
-      APP_ENV: production
-      APP_DEBUG: "false"
-      APP_KEY: ${APP_KEY}
-      APP_URL: ${APP_URL}
-      MASTER_DB_HOST: mysql-master
-      MASTER_DB_PORT: 3306
-      MASTER_DB_DATABASE: erp_master
-      MASTER_DB_USERNAME: root
-      MASTER_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      REDIS_HOST: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      QUEUE_CONNECTION: redis
-      BROADCAST_CONNECTION: redis
-      CACHE_STORE: redis
-    depends_on:
-      - backend
     networks:
       - erp_net
 
