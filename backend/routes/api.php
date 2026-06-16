@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Admin\AdminAuthController;
+use App\Http\Controllers\Api\V1\Admin\AdminOrganizationController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
-use App\Http\Controllers\Api\V1\Auth\OrganizationController;
 use App\Http\Controllers\Api\V1\Dashboard\DashboardController;
 use App\Http\Controllers\Api\V1\Inventory\GrnController;
 use App\Http\Controllers\Api\V1\Inventory\InventoryItemController;
 use App\Http\Controllers\Api\V1\Inventory\InventoryTransactionController;
+use App\Http\Controllers\Api\V1\MasterData\BomController;
 use App\Http\Controllers\Api\V1\MasterData\CategoryController;
 use App\Http\Controllers\Api\V1\MasterData\CustomerController;
 use App\Http\Controllers\Api\V1\MasterData\DepartmentController;
@@ -16,22 +18,35 @@ use App\Http\Controllers\Api\V1\MasterData\ShiftController;
 use App\Http\Controllers\Api\V1\MasterData\UnitController;
 use App\Http\Controllers\Api\V1\MasterData\VendorController;
 use App\Http\Controllers\Api\V1\MasterData\WarehouseController;
-use App\Http\Controllers\Api\V1\MasterData\BomController;
 use App\Http\Controllers\Api\V1\Production\ProductionEntryController;
 use App\Http\Controllers\Api\V1\Production\ProductionPlanController;
 use App\Http\Controllers\Api\V1\Worker\AttendanceController;
 use App\Http\Controllers\Api\V1\Worker\WorkerController;
 use Illuminate\Support\Facades\Route;
 
-// Public routes
+// ─── Public ──────────────────────────────────────────────────────────────────
 Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
-    Route::post('/auth/register', [OrganizationController::class, 'register']);
 });
 
-// Protected routes
+// ─── Admin panel (super admin, no tenant context) ────────────────────────────
+Route::prefix('v1/admin')->group(function () {
+    Route::post('/auth/login', [AdminAuthController::class, 'login']);
+
+    Route::middleware('auth:admin')->group(function () {
+        Route::get('/auth/me', [AdminAuthController::class, 'me']);
+        Route::post('/auth/logout', [AdminAuthController::class, 'logout']);
+
+        Route::get('/organizations', [AdminOrganizationController::class, 'index']);
+        Route::post('/organizations', [AdminOrganizationController::class, 'store']);
+        Route::get('/organizations/{organization}', [AdminOrganizationController::class, 'show']);
+        Route::patch('/organizations/{organization}/status', [AdminOrganizationController::class, 'updateStatus']);
+    });
+});
+
+// ─── Tenant API (tenant resolved from bearer token, then sanctum auth) ────────
 Route::prefix('v1')
-    ->middleware(['auth:sanctum', 'tenant', 'org.active'])
+    ->middleware(['tenant', 'auth:sanctum', 'org.active'])
     ->group(function () {
         // Auth
         Route::prefix('auth')->group(function () {

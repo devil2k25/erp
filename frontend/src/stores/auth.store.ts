@@ -18,15 +18,21 @@ export const useAuthStore = defineStore('auth', () => {
     return roles.some((r) => hasRole(r))
   }
 
-  async function login(email: string, password: string, slug: string) {
-    orgSlug.value = slug
-    localStorage.setItem('erp_org_slug', slug)
-
+  async function login(email: string, password: string) {
     const response: any = await AuthService.login({ email, password })
-    token.value = response.data.token
-    user.value = response.data.user
-    localStorage.setItem('erp_token', response.data.token)
-    return response.data
+    const data = response.data
+
+    token.value = data.token
+    user.value = data.user
+    // org slug comes from the login response — no need to enter it manually
+    orgSlug.value = data.organization?.slug ?? null
+
+    localStorage.setItem('erp_token', data.token)
+    if (data.organization?.slug) {
+      localStorage.setItem('erp_org_slug', data.organization.slug)
+    }
+
+    return data
   }
 
   async function fetchMe() {

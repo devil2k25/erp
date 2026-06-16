@@ -5,6 +5,7 @@ namespace App\Services\Auth;
 use App\Models\Master\Organization;
 use App\Models\Master\Plan;
 use App\Models\Master\Subscription;
+use App\Models\Master\UserOrgMap;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -14,7 +15,7 @@ class OrganizationOnboardingService
 {
     public function __construct(private TenantService $tenantService) {}
 
-    public function register(array $data): array
+    public function createByAdmin(array $data): array
     {
         $plan = Plan::where('slug', $data['plan_slug'] ?? 'basic')->firstOrFail();
 
@@ -27,17 +28,17 @@ class OrganizationOnboardingService
                 'owner_phone'   => $data['owner_phone'] ?? null,
                 'industry_type' => $data['industry_type'] ?? null,
                 'timezone'      => $data['timezone'] ?? 'UTC',
-                'status'        => 'trial',
-                'trial_ends_at' => now()->addDays(14),
+                'status'        => $data['status'] ?? 'active',
+                'trial_ends_at' => isset($data['trial_days']) ? now()->addDays($data['trial_days']) : null,
             ]);
 
             Subscription::create([
                 'organization_id' => $org->id,
                 'plan_id'         => $plan->id,
-                'status'          => 'trialing',
+                'status'          => 'active',
                 'starts_at'       => now(),
-                'ends_at'         => now()->addDays(14),
-                'billing_cycle'   => 'monthly',
+                'ends_at'         => now()->addYear(),
+                'billing_cycle'   => $data['billing_cycle'] ?? 'monthly',
                 'amount_paid'     => 0,
             ]);
 
@@ -45,7 +46,6 @@ class OrganizationOnboardingService
         });
 
         $tenantDb = $this->tenantService->provisionTenantDatabase($org);
-
         $this->tenantService->connectToTenant($tenantDb);
 
         $user = \App\Models\Tenant\User::create([
@@ -58,12 +58,15 @@ class OrganizationOnboardingService
 
         $user->assignRole('factory_owner');
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        // Record email → org mapping so login can find the tenant without a slug
+        UserOrgMap::create([
+            'email'           => $data['owner_email'],
+            'organization_id' => $org->id,
+        ]);
 
         return [
             'organization' => $org,
-            'user'         => $user,
-            'token'        => $token,
+            'user'         => $user->load('roles'),
         ];
     }
 }
