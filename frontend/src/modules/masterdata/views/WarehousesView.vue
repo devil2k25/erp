@@ -14,20 +14,35 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <h1 class="text-2xl font-bold text-white">Warehouses</h1>
-    <div v-if="loading" class="text-slate-500 p-8 text-center">Loading...</div>
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div v-for="w in warehouses" :key="w.id" class="bg-slate-900 rounded-xl p-5 border border-slate-800">
-        <div class="flex items-start justify-between">
-          <div>
-            <h2 class="text-white font-semibold">{{ w.name }}</h2>
-            <p class="text-xs text-slate-500 mt-0.5">{{ w.code }}</p>
+  <div class="space-y-card-gap">
+    <div>
+      <h1 class="text-headline-sm text-on-surface">Warehouses</h1>
+      <p class="text-body-md text-outline mt-0.5">Storage locations and distribution centers</p>
+    </div>
+
+    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-card-gap">
+      <div v-for="i in 3" :key="i" class="bg-surface-container-low rounded-xl h-32 animate-pulse border border-outline-variant" />
+    </div>
+
+    <div v-else-if="warehouses.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-card-gap">
+      <div v-for="w in warehouses" :key="w.id" class="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 hover:shadow-sm transition-shadow">
+        <div class="flex items-start justify-between mb-3">
+          <div class="w-10 h-10 bg-primary-container rounded-lg flex items-center justify-center">
+            <span class="material-symbols-outlined text-primary-fixed text-[20px]">warehouse</span>
           </div>
-          <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 capitalize">{{ w.type.replace('_', ' ') }}</span>
+          <span class="px-2.5 py-1 rounded-full text-[11px] font-bold capitalize bg-surface-container text-on-surface-variant">
+            {{ w.type?.replace(/_/g, ' ') }}
+          </span>
         </div>
-        <p v-if="w.address" class="text-sm text-slate-400 mt-3">{{ w.address }}</p>
+        <h2 class="text-body-lg font-semibold text-on-surface">{{ w.name }}</h2>
+        <p class="text-label-md text-outline mt-0.5">{{ w.code }}</p>
+        <p v-if="w.address" class="text-body-sm text-secondary mt-2 line-clamp-2">{{ w.address }}</p>
       </div>
+    </div>
+
+    <div v-else class="text-center py-16 text-outline">
+      <span class="material-symbols-outlined text-[48px] text-outline-variant block mb-3">warehouse</span>
+      <p class="text-body-md">No warehouses configured yet.</p>
     </div>
   </div>
 </template>

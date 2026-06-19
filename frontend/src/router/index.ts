@@ -73,6 +73,16 @@ const router = createRouter({
           component: () => import('@/modules/masterdata/views/MachinesView.vue'),
         },
         {
+          path: 'vendors',
+          name: 'vendors',
+          component: () => import('@/modules/masterdata/views/VendorsView.vue'),
+        },
+        {
+          path: 'vendors/:id',
+          name: 'vendor.detail',
+          component: () => import('@/modules/masterdata/views/VendorDetailView.vue'),
+        },
+        {
           path: 'inventory',
           name: 'inventory',
           component: () => import('@/modules/inventory/views/InventoryView.vue'),

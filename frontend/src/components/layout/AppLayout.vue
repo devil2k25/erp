@@ -16,13 +16,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex h-screen bg-slate-900 text-slate-100 overflow-hidden">
+  <div class="overflow-hidden">
     <Sidebar />
-    <div class="flex flex-col flex-1 overflow-hidden">
-      <Topbar />
-      <main class="flex-1 overflow-y-auto p-6 bg-slate-950">
+    <Topbar />
+    <main class="ml-sidebar-width pt-16 h-screen overflow-y-auto custom-scrollbar bg-background">
+      <div class="p-container-padding pb-20">
         <router-view />
-      </main>
-    </div>
+      </div>
+    </main>
   </div>
 </template>

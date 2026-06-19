@@ -1,28 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
-import { VueApexCharts } from 'vue3-apexcharts'
 
 const metrics = ref<any>(null)
 const loading = ref(true)
-
-const oeeOptions = {
-  chart: { type: 'radialBar', background: 'transparent' },
-  colors: ['#3b82f6'],
-  plotOptions: { radialBar: { dataLabels: { value: { fontSize: '24px', color: '#fff' } } } },
-  labels: ['OEE'],
-  theme: { mode: 'dark' },
-}
-
-const productionOptions = {
-  chart: { type: 'bar', background: 'transparent', toolbar: { show: false } },
-  colors: ['#3b82f6', '#10b981'],
-  xaxis: { categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], labels: { style: { colors: '#94a3b8' } } },
-  yaxis: { labels: { style: { colors: '#94a3b8' } } },
-  legend: { labels: { colors: '#94a3b8' } },
-  theme: { mode: 'dark' },
-  grid: { borderColor: '#1e293b' },
-}
 
 onMounted(async () => {
   try {
@@ -34,67 +15,94 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+function machineStatusColor(status: string) {
+  const map: Record<string, string> = {
+    running:     'bg-tertiary',
+    idle:        'bg-outline-variant',
+    maintenance: 'bg-amber-400',
+    breakdown:   'bg-error',
+    retired:     'bg-outline',
+  }
+  return map[status] ?? 'bg-outline'
+}
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-card-gap">
+    <!-- Page Header -->
     <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-white">Owner Dashboard</h1>
-      <span class="text-sm text-slate-400">{{ new Date().toLocaleDateString() }}</span>
+      <div>
+        <h1 class="text-headline-sm text-on-surface">Owner Dashboard</h1>
+        <p class="text-body-md text-outline mt-0.5">{{ new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}</p>
+      </div>
     </div>
 
-    <div v-if="loading" class="grid grid-cols-4 gap-4">
-      <div v-for="i in 4" :key="i" class="bg-slate-900 rounded-xl h-28 animate-pulse border border-slate-800" />
+    <!-- Loading skeleton -->
+    <div v-if="loading" class="grid grid-cols-2 lg:grid-cols-4 gap-card-gap">
+      <div v-for="i in 4" :key="i" class="bg-surface-container-low rounded-xl h-28 animate-pulse border border-outline-variant" />
     </div>
 
-    <div v-else-if="metrics" class="space-y-6">
+    <template v-else-if="metrics">
       <!-- KPI Cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
-          <p class="text-xs text-slate-500 uppercase tracking-wider">Today's Production</p>
-          <p class="text-3xl font-bold text-white mt-2">{{ metrics.production_summary?.today_actual ?? 0 }}</p>
-          <p class="text-xs text-slate-400 mt-1">of {{ metrics.production_summary?.today_planned ?? 0 }} planned</p>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-card-gap">
+        <div class="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl hover:shadow-sm transition-shadow">
+          <p class="text-outline text-[11px] font-bold uppercase tracking-wider mb-2">Today's Production</p>
+          <h3 class="text-headline-sm text-on-surface">{{ metrics.production_summary?.today_actual ?? 0 }}</h3>
+          <div class="mt-2 flex items-center gap-1 text-outline">
+            <span class="material-symbols-outlined text-[14px]">inventory</span>
+            <span class="text-[11px] font-bold">of {{ metrics.production_summary?.today_planned ?? 0 }} planned</span>
+          </div>
         </div>
-        <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
-          <p class="text-xs text-slate-500 uppercase tracking-wider">Average OEE</p>
-          <p class="text-3xl font-bold text-blue-400 mt-2">{{ (metrics.oee_summary?.avg_oee ?? 0).toFixed(1) }}%</p>
-          <p class="text-xs text-slate-400 mt-1">target: 85%</p>
+
+        <div class="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl hover:shadow-sm transition-shadow">
+          <p class="text-outline text-[11px] font-bold uppercase tracking-wider mb-2">Average OEE</p>
+          <h3 class="text-headline-sm text-primary">{{ (metrics.oee_summary?.avg_oee ?? 0).toFixed(1) }}%</h3>
+          <div class="mt-2 flex items-center gap-1 text-outline">
+            <span class="material-symbols-outlined text-[14px]">analytics</span>
+            <span class="text-[11px] font-bold">Target: 85%</span>
+          </div>
         </div>
-        <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
-          <p class="text-xs text-slate-500 uppercase tracking-wider">Workers Present</p>
-          <p class="text-3xl font-bold text-green-400 mt-2">{{ metrics.worker_summary?.present_today ?? 0 }}</p>
-          <p class="text-xs text-slate-400 mt-1">{{ metrics.worker_summary?.absent_today ?? 0 }} absent</p>
+
+        <div class="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl hover:shadow-sm transition-shadow">
+          <p class="text-outline text-[11px] font-bold uppercase tracking-wider mb-2">Workers Present</p>
+          <h3 class="text-headline-sm text-tertiary">{{ metrics.worker_summary?.present_today ?? 0 }}</h3>
+          <div class="mt-2 flex items-center gap-1 text-outline">
+            <span class="material-symbols-outlined text-[14px]">groups</span>
+            <span class="text-[11px] font-bold">{{ metrics.worker_summary?.absent_today ?? 0 }} absent</span>
+          </div>
         </div>
-        <div class="bg-slate-900 rounded-xl p-5 border border-slate-800">
-          <p class="text-xs text-slate-500 uppercase tracking-wider">Inventory Value</p>
-          <p class="text-3xl font-bold text-white mt-2">₹{{ ((metrics.inventory_value ?? 0) / 100000).toFixed(1) }}L</p>
-          <p class="text-xs text-slate-400 mt-1">total stock value</p>
+
+        <div class="bg-surface-container-lowest border border-outline-variant p-5 rounded-xl hover:shadow-sm transition-shadow">
+          <p class="text-outline text-[11px] font-bold uppercase tracking-wider mb-2">Inventory Value</p>
+          <h3 class="text-headline-sm text-on-surface">₹{{ ((metrics.inventory_value ?? 0) / 100000).toFixed(1) }}L</h3>
+          <div class="mt-2 flex items-center gap-1 text-outline">
+            <span class="material-symbols-outlined text-[14px]">inventory_2</span>
+            <span class="text-[11px] font-bold">Total stock value</span>
+          </div>
         </div>
       </div>
 
       <!-- Machine Status -->
-      <div v-if="metrics.machine_status?.length" class="bg-slate-900 rounded-xl p-5 border border-slate-800">
-        <h2 class="text-sm font-semibold text-slate-300 mb-4">Machine Status</h2>
+      <div v-if="metrics.machine_status?.length" class="bg-surface-container-lowest border border-outline-variant rounded-xl p-5">
+        <h2 class="text-label-md text-on-surface uppercase tracking-wider mb-4">Machine Status</h2>
         <div class="flex flex-wrap gap-3">
-          <div v-for="s in metrics.machine_status" :key="s.status" class="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2">
-            <span class="w-2 h-2 rounded-full"
-              :class="{
-                'bg-green-400': s.status === 'running',
-                'bg-yellow-400': s.status === 'idle',
-                'bg-orange-400': s.status === 'maintenance',
-                'bg-red-500': s.status === 'breakdown',
-                'bg-slate-500': s.status === 'retired',
-              }"
-            />
-            <span class="text-xs text-slate-300 capitalize">{{ s.status }}</span>
-            <span class="text-xs font-bold text-white">{{ s.count }}</span>
+          <div
+            v-for="s in metrics.machine_status"
+            :key="s.status"
+            class="flex items-center gap-2 bg-surface-container-low border border-outline-variant rounded-lg px-4 py-2"
+          >
+            <span class="w-2 h-2 rounded-full flex-shrink-0" :class="machineStatusColor(s.status)" />
+            <span class="text-body-sm text-on-surface capitalize">{{ s.status }}</span>
+            <span class="text-label-md text-on-surface font-bold">{{ s.count }}</span>
           </div>
         </div>
       </div>
-    </div>
+    </template>
 
-    <div v-else class="text-center py-20 text-slate-500">
-      <p>Unable to load dashboard data. Please check your connection.</p>
+    <div v-else class="text-center py-20 text-outline">
+      <span class="material-symbols-outlined text-[48px] mb-4 block text-outline-variant">wifi_off</span>
+      <p class="text-body-md">Unable to load dashboard. Please check your connection.</p>
     </div>
   </div>
 </template>
